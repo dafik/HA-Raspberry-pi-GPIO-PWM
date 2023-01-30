@@ -29,6 +29,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
+from transition import Transition
+from transition_manager import TransitionManager
+
 _LOGGER = logging.getLogger(__name__)
 
 CONF_LEDS = "leds"
@@ -91,6 +94,7 @@ class PwmSimpleLed(LightEntity, RestoreEntity):
         self._led: PWMLED = led
         self._is_on = False
         self._brightness = DEFAULT_BRIGHTNESS
+        self._active_transition = None
 
     async def async_added_to_hass(self):
         """Handle entity about to be added to hass event."""
@@ -124,19 +128,48 @@ class PwmSimpleLed(LightEntity, RestoreEntity):
     def turn_on(self, **kwargs):
         _LOGGER.info("TURN ON: " + self.name + " args: " + str(locals()))
         """Turn on a led."""
-        if ATTR_BRIGHTNESS in kwargs:
-            self._brightness = kwargs[ATTR_BRIGHTNESS]
-        self._led.value = _from_hass_brightness(self._brightness)
+        self._cancel_active_transition();
+        if ATTR_BRIGHTNESS in kwargs and ATTR_TRANSITION in kwargs:
+            self._transition(kwargs[ATTR_TRANSITION], 0, _from_hass_brightness(kwargs[ATTR_BRIGHTNESS]))
+
+        elif ATTR_BRIGHTNESS in kwargs:
+            self.set_brightness(_from_hass_brightness(kwargs[ATTR_BRIGHTNESS]))
+
         self._is_on = True
         self.schedule_update_ha_state()
 
     def turn_off(self, **kwargs):
         _LOGGER.info("TURN ON: " + self.name + " args: " + str(locals()))
+        self._cancel_active_transition();
         """Turn off a LED."""
         if self.is_on:
             self._led.off()
         self._is_on = False
         self.schedule_update_ha_state()
+
+    def set_brightness(self, value):
+        _LOGGER.info("BRIGHTNESS: " + str(self.brightness) + " new: " + str(value))
+
+        self._brightness = value
+        self._led.value = value
+
+        if value == 0:
+            self._is_on = False
+
+    def _transition(self, duration, from_brightness, to_brightness):
+        _LOGGER.info("TRANSITION: dur: " + str(duration) + " from: " + str(from_brightness) + " to: " + str(to_brightness))
+        self._cancel_active_transition()
+        return TransitionManager().execute(Transition(
+            self,
+            duration,
+            from_brightness,
+            to_brightness,
+        ))
+
+    def _cancel_active_transition(self):
+        if self._active_transition:
+            self._active_transition.cancel()
+            self._active_transition = None
 
 
 def _from_hass_brightness(brightness):
