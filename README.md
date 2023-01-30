@@ -1,4 +1,4 @@
-# Home Assistant Raspberry Pi GPIO PWM custom integration
+# Home Assistant Raspberry Pi GPIO PWM dfi custom integration
 
 **This is a spin-off from the original Home Assistant integration which was marked as deprecated and will be removed in Home Assistant Core 2022.4.**
 
@@ -18,6 +18,7 @@ The recommend way to install `ha-rpi_gpio_pwm` is through [HACS](https://hacs.xy
 Copy the `ha-rpi_gpio_pwm` folder and all of its contents into your Home Assistant's `custom_components` folder. This folder is usually inside your `/config` folder. If you are running Hass.io, use SAMBA to copy the folder over. You may need to create the `custom_components` folder and then copy the `ha-rpi_gpio_pwm` folder and all of its contents into it.
 
 # Configuration
+
 To enable this platform, add the following lines to your configuration.yaml:
 
 ```yaml
@@ -28,16 +29,12 @@ light:
       - name: Lightstrip Cupboard
         pin: 17
 ```
+
 # CONFIGURATION VARIABLES
+
 - **leds** list *(REQUIRED)*: Can contain multiple LEDs.
-
 - **name** string *(REQUIRED)*: The name of the LED.
-
 - **pin** integer *(REQUIRED)*: The pin connected to the LED as a list.
-
 - **frequency** integer *(optional, default: 100)*: The PWM frequency.
-
 - **host** string *(optional, default: localhost)*: The remote host address for the GPIO driver.
-
 - **port** integer *(optional, default: 8888)*: The port on which the GPIO driver is listening.
-

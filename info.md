@@ -1,4 +1,4 @@
-# Home Assistant Raspberry Pi GPIO PWM custom integration
+# Home Assistant Raspberry Pi GPIO PWM dfi custom integration
 
 **This is a spin-off from the original Home Assistant integration which was marked as deprecated and will be removed in Home Assistant Core 2022.4.**
 
