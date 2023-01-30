@@ -84,11 +84,11 @@ def setup_platform(
 class PwmSimpleLed(LightEntity, RestoreEntity):
     """Representation of a simple one-color PWM LED."""
 
-    def __init__(self, led, name, unique_id=None):
+    def __init__(self, led: PWMLED, name, unique_id=None):
         """Initialize one-color PWM LED."""
         self._attr_name = name
         self._attr_unique_id = unique_id
-        self._led = led
+        self._led: PWMLED = led
         self._is_on = False
         self._brightness = DEFAULT_BRIGHTNESS
 
@@ -122,6 +122,7 @@ class PwmSimpleLed(LightEntity, RestoreEntity):
         return SUPPORT_SIMPLE_LED
 
     def turn_on(self, **kwargs):
+        _LOGGER.info("TURN ON: " + self.name + " args: " + str(locals()))
         """Turn on a led."""
         if ATTR_BRIGHTNESS in kwargs:
             self._brightness = kwargs[ATTR_BRIGHTNESS]
@@ -130,6 +131,7 @@ class PwmSimpleLed(LightEntity, RestoreEntity):
         self.schedule_update_ha_state()
 
     def turn_off(self, **kwargs):
+        _LOGGER.info("TURN ON: " + self.name + " args: " + str(locals()))
         """Turn off a LED."""
         if self.is_on:
             self._led.off()
