@@ -16,7 +16,13 @@ from homeassistant.components.light import (
     SUPPORT_TRANSITION,
     LightEntity,
 )
-from homeassistant.const import CONF_HOST, CONF_PORT, CONF_NAME, STATE_ON
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PORT,
+    CONF_NAME,
+    STATE_ON,
+    CONF_UNIQUE_ID
+)
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -45,6 +51,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
                     vol.Required(CONF_NAME): cv.string,
                     vol.Required(CONF_PIN): cv.positive_int,
                     vol.Optional(CONF_FREQUENCY): cv.positive_int,
+                    vol.Optional(CONF_UNIQUE_ID): cv.string,
                     vol.Optional(CONF_HOST, default=DEFAULT_HOST): cv.string,
                     vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
                 }
@@ -55,10 +62,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 
 def setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
+        hass: HomeAssistant,
+        config: ConfigType,
+        add_entities: AddEntitiesCallback,
+        discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up the PWM LED lights."""
     leds = []
@@ -67,8 +74,8 @@ def setup_platform(
         opt_args = {}
         if CONF_FREQUENCY in led_conf:
             opt_args["frequency"] = led_conf[CONF_FREQUENCY]
-        opt_args["pin_factory"] = PiGPIOFactory(host=led_conf[CONF_HOST], port= led_conf[CONF_PORT])
-        led = PwmSimpleLed(PWMLED(pin, **opt_args), led_conf[CONF_NAME])
+        opt_args["pin_factory"] = PiGPIOFactory(host=led_conf[CONF_HOST], port=led_conf[CONF_PORT])
+        led = PwmSimpleLed(PWMLED(pin, **opt_args), led_conf[CONF_NAME], led_conf.get(CONF_UNIQUE_ID))
         leds.append(led)
 
     add_entities(leds)
@@ -77,10 +84,11 @@ def setup_platform(
 class PwmSimpleLed(LightEntity, RestoreEntity):
     """Representation of a simple one-color PWM LED."""
 
-    def __init__(self, led, name):
+    def __init__(self, led, name, unique_id=None):
         """Initialize one-color PWM LED."""
+        self._attr_name = name
+        self._attr_unique_id = unique_id
         self._led = led
-        self._name = name
         self._is_on = False
         self._brightness = DEFAULT_BRIGHTNESS
 
@@ -97,11 +105,6 @@ class PwmSimpleLed(LightEntity, RestoreEntity):
     def should_poll(self):
         """No polling needed."""
         return False
-
-    @property
-    def name(self):
-        """Return the name of the group."""
-        return self._name
 
     @property
     def is_on(self):
@@ -132,6 +135,7 @@ class PwmSimpleLed(LightEntity, RestoreEntity):
             self._led.off()
         self._is_on = False
         self.schedule_update_ha_state()
+
 
 def _from_hass_brightness(brightness):
     """Convert Home Assistant brightness units to percentage."""
