@@ -28,8 +28,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from singleton.singleton import Singleton
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -285,7 +283,7 @@ class Transition:
         self._finish_event.set()
 
 
-class TransitionManager(object, metaclass=Singleton):
+class TransitionManager:
     """Represents a manager that executes transitions in a separate thread."""
     _thread: threading.Thread
     _transitions: list[Transition]
