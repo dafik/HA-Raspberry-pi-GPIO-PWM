@@ -90,7 +90,7 @@ class PwmSimpleLed(LightEntity, RestoreEntity):
         self._attr_unique_id = unique_id
         self._led: PWMLED = led
         self._is_on = False
-        self._brightness = DEFAULT_BRIGHTNESS
+        self._brightness = _from_hass_brightness(DEFAULT_BRIGHTNESS)
         self._active_transition = None
 
     async def async_added_to_hass(self):
@@ -136,25 +136,29 @@ class PwmSimpleLed(LightEntity, RestoreEntity):
         self.schedule_update_ha_state()
 
     def turn_off(self, **kwargs):
-        _LOGGER.info("TURN ON: " + self.name + " args: " + str(locals()))
+        _LOGGER.info("TURN OFF: " + self.name + " args: " + str(locals()))
         self._cancel_active_transition()
         """Turn off a LED."""
-        if self.is_on:
+        if ATTR_TRANSITION in kwargs:
+            self._transition(kwargs[ATTR_TRANSITION], self.brightness, 0)
+        elif self.is_on:
             self._led.off()
         self._is_on = False
         self.schedule_update_ha_state()
 
     def set_brightness(self, value):
-        _LOGGER.info("BRIGHTNESS: " + str(self.brightness) + " new: " + str(value))
+        _LOGGER.info("BRIGHTNESS: " + str(_to_hass_brightness(self.brightness)) + " new: " + str(_to_hass_brightness(value)))
 
         self._brightness = value
         self._led.value = value
 
         if value == 0:
             self._is_on = False
+        else:
+            self._is_on = True
 
     def _transition(self, duration, from_brightness, to_brightness):
-        _LOGGER.info("TRANSITION: dur: " + str(duration) + " from: " + str(from_brightness) + " to: " + str(to_brightness))
+        _LOGGER.info("TRANSITION: dur: " + str(duration) + " from: " + str(_to_hass_brightness(from_brightness)) + " to: " + str(_to_hass_brightness(to_brightness)))
         self._cancel_active_transition()
         return TransitionManager().execute(Transition(
             self,
@@ -189,6 +193,7 @@ class Transition:
         self._cancelled = False
         self._finish_event = threading.Event()
         self._start_time = time.perf_counter()
+        self._led.set_brightness(from_brightness)
 
     @property
     def duration(self):
@@ -241,12 +246,12 @@ class Transition:
 
         src_brightness = self._from_brightness
         dest_brightness = self._to_brightness
-        if src_is_on is False:
-            if dest_brightness is None:
-                dest_brightness = src_brightness
-            src_brightness = 0
-        if dest_is_on is False:
-            dest_brightness = 0
+        #if src_is_on is False:
+        #    if dest_brightness is None:
+        #        dest_brightness = src_brightness
+        #    src_brightness = 0
+        # if dest_is_on is False:
+        #    dest_brightness = 0
         if src_brightness is not None and dest_brightness is not None:
             self._led.set_brightness(self._interpolate(
                 src_brightness,
@@ -283,7 +288,27 @@ class Transition:
         self._finish_event.set()
 
 
-class TransitionManager:
+class SingletonMeta(type):
+    """
+    The Singleton class can be implemented in different ways in Python. Some
+    possible methods include: base class, decorator, metaclass. We will use the
+    metaclass because it is best suited for this purpose.
+    """
+
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        """
+        Possible changes to the value of the `__init__` argument do not affect
+        the returned instance.
+        """
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class TransitionManager(metaclass=SingletonMeta):
     """Represents a manager that executes transitions in a separate thread."""
     _thread: threading.Thread
     _transitions: list[Transition]
@@ -325,3 +350,8 @@ class TransitionManager:
 def _from_hass_brightness(brightness):
     """Convert Home Assistant brightness units to percentage."""
     return brightness / 255
+
+
+def _to_hass_brightness(brightness):
+    """Convert Home Assistant brightness units to percentage."""
+    return brightness * 255

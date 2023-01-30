@@ -1,1 +1,2 @@
 /.idea/
+/custom_components/ha-rpi_gpio_pwm/test_light.py
